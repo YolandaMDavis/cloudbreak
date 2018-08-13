@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 import com.sequenceiq.cloudbreak.api.model.rds.RDSConfigJson;
 import com.sequenceiq.cloudbreak.api.model.rds.RdsType;
 import com.sequenceiq.cloudbreak.api.model.stack.cluster.ClusterRequest;
-import com.sequenceiq.cloudbreak.common.model.user.IdentityUser;
 import com.sequenceiq.cloudbreak.controller.exception.BadRequestException;
 import com.sequenceiq.cloudbreak.domain.RDSConfig;
 import com.sequenceiq.cloudbreak.service.rdsconfig.RdsConfigService;
@@ -23,7 +22,7 @@ public class RdsConfigValidator {
     @Inject
     private RdsConfigService rdsConfigService;
 
-    public void validateRdsConfigs(ClusterRequest request, IdentityUser user) {
+    public void validateRdsConfigs(ClusterRequest request) {
         Map<String, Integer> typeCountMap = new HashMap<>();
         Set<String> multipleTypes = new HashSet<>();
         if (request.getRdsConfigIds() != null) {
@@ -34,7 +33,7 @@ public class RdsConfigValidator {
         }
         if (request.getRdsConfigNames() != null) {
             for (String rdsConfigName : request.getRdsConfigNames()) {
-                RDSConfig rdsConfig = rdsConfigService.getPublicRdsConfig(rdsConfigName, user);
+                RDSConfig rdsConfig = rdsConfigService.getByName(rdsConfigName);
                 increaseCount(rdsConfig.getType(), typeCountMap, multipleTypes);
             }
         }

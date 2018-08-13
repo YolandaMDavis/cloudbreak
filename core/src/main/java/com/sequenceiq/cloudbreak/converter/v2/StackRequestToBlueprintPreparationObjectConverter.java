@@ -115,7 +115,7 @@ public class StackRequestToBlueprintPreparationObjectConverter extends AbstractC
             KerberosConfig kerberosConfig = getKerberosConfig(source);
             LdapConfig ldapConfig = getLdapConfig(source, identityUser);
             BaseFileSystemConfigurationsView fileSystemConfigurationView = getFileSystemConfigurationView(source, credential);
-            Set<RDSConfig> rdsConfigs = getRdsConfigs(source, identityUser);
+            Set<RDSConfig> rdsConfigs = getRdsConfigs(source);
             Blueprint blueprint = getBlueprint(source, identityUser);
             BlueprintStackInfo blueprintStackInfo = stackInfoService.blueprintStackInfo(blueprint.getBlueprintText());
             Set<HostgroupView> hostgroupViews = getHostgroupViews(source);
@@ -185,10 +185,10 @@ public class StackRequestToBlueprintPreparationObjectConverter extends AbstractC
         return hostgroupViews;
     }
 
-    private Set<RDSConfig> getRdsConfigs(StackV2Request source, IdentityUser identityUser) {
+    private Set<RDSConfig> getRdsConfigs(StackV2Request source) {
         Set<RDSConfig> rdsConfigs = new HashSet<>();
         for (String rdsConfigRequest : source.getCluster().getRdsConfigNames()) {
-            RDSConfig rdsConfig = rdsConfigService.getPrivateRdsConfig(rdsConfigRequest, identityUser);
+            RDSConfig rdsConfig = rdsConfigService.getByName(rdsConfigRequest);
             rdsConfigs.add(rdsConfig);
         }
         return rdsConfigs;

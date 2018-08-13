@@ -21,10 +21,14 @@ import com.sequenceiq.cloudbreak.api.model.ResourceStatus;
 import com.sequenceiq.cloudbreak.api.model.rds.RdsType;
 import com.sequenceiq.cloudbreak.domain.Blueprint;
 import com.sequenceiq.cloudbreak.domain.RDSConfig;
+import com.sequenceiq.cloudbreak.domain.organization.Organization;
+import com.sequenceiq.cloudbreak.domain.organization.User;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
 import com.sequenceiq.cloudbreak.domain.stack.cluster.Cluster;
 import com.sequenceiq.cloudbreak.repository.RdsConfigRepository;
 import com.sequenceiq.cloudbreak.service.cluster.ClusterService;
+import com.sequenceiq.cloudbreak.service.organization.OrganizationService;
+import com.sequenceiq.cloudbreak.service.user.UserService;
 import com.sequenceiq.cloudbreak.util.PasswordUtil;
 
 public abstract class AbstractRdsConfigProvider {
@@ -39,6 +43,12 @@ public abstract class AbstractRdsConfigProvider {
 
     @Inject
     private ClusterService clusterService;
+
+    @Inject
+    private OrganizationService organizationService;
+
+    @Inject
+    private UserService userService;
 
     public Map<String, Object> createServicePillarConfigMapIfNeeded(Stack stack, Cluster cluster) {
         if (isRdsConfigNeeded(cluster.getBlueprint())) {
@@ -56,7 +66,9 @@ public abstract class AbstractRdsConfigProvider {
     }
 
     public Set<RDSConfig> createPostgresRdsConfigIfNeeded(Stack stack, Cluster cluster) {
-        Set<RDSConfig> rdsConfigs = rdsConfigRepository.findByClusterId(stack.getOwner(), stack.getAccount(), cluster.getId());
+        User user = userService.getCurrentUser();
+        Organization organization = organizationService.getDefaultOrganizationForUser(user);
+        Set<RDSConfig> rdsConfigs = rdsConfigRepository.findByClusterId(cluster.getId(), organization.getId());
         if (isRdsConfigNeeded(cluster.getBlueprint())
                 && rdsConfigs.stream().noneMatch(rdsConfig -> rdsConfig.getType().equalsIgnoreCase(getRdsType().name()))) {
             LOGGER.info("Creating postgres RDSConfig for {}", getRdsType().name());
@@ -80,8 +92,7 @@ public abstract class AbstractRdsConfigProvider {
         rdsConfig.setOwner(stack.getOwner());
         rdsConfig.setAccount(stack.getAccount());
         rdsConfig.setClusters(Collections.singleton(cluster));
-        rdsConfig.setOrganization(stack.getOrganization());
-        rdsConfig = rdsConfigService.create(rdsConfig);
+        rdsConfig = rdsConfigService.createInDefaultOrganization(rdsConfig);
 
         if (rdsConfigs == null) {
             rdsConfigs = new HashSet<>();

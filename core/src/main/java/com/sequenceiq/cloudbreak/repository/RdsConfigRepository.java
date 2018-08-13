@@ -1,6 +1,7 @@
 package com.sequenceiq.cloudbreak.repository;
 
-import java.util.Optional;
+import static com.sequenceiq.cloudbreak.authorization.OrganizationPermissions.Action.READ;
+
 import java.util.Set;
 
 import javax.transaction.Transactional;
@@ -8,52 +9,47 @@ import javax.transaction.Transactional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.sequenceiq.cloudbreak.aspect.DisableHasPermission;
+import com.sequenceiq.cloudbreak.aspect.organization.CheckPermissionsByOrganizationId;
+import com.sequenceiq.cloudbreak.aspect.organization.OrganizationResourceType;
+import com.sequenceiq.cloudbreak.authorization.OrganizationResource;
 import com.sequenceiq.cloudbreak.domain.RDSConfig;
-import com.sequenceiq.cloudbreak.aspect.HasPermission;
 import com.sequenceiq.cloudbreak.service.EntityType;
 
 @EntityType(entityClass = RDSConfig.class)
 @Transactional(Transactional.TxType.REQUIRED)
-@HasPermission
-public interface RdsConfigRepository extends BaseRepository<RDSConfig, Long> {
+@DisableHasPermission
+@OrganizationResourceType(resource = OrganizationResource.RDS)
+public interface RdsConfigRepository extends OrganizationResourceRepository<RDSConfig, Long> {
 
-    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE r.owner= :user AND r.status = 'USER_MANAGED'")
-    Set<RDSConfig> findForUser(@Param("user") String user);
+    @CheckPermissionsByOrganizationId(action = READ)
+    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE r.organization.id = :orgId")
+    Set<RDSConfig> findAll(@Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE ((r.account= :account AND r.publicInAccount= true) OR r.owner= :user) "
-            + "AND r.status = 'USER_MANAGED' ")
-    Set<RDSConfig> findPublicInAccountForUser(@Param("user") String user, @Param("account") String account);
+    @CheckPermissionsByOrganizationId(action = READ, organizationIdIndex = 1)
+    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE r.name= :name AND r.organization.id = :orgId AND r.status = 'USER_MANAGED'")
+    RDSConfig findByName(@Param("name") String name, @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE r.account= :account AND r.status = 'USER_MANAGED'")
-    Set<RDSConfig> findAllBasedOnAccount(@Param("account") String account);
+    @CheckPermissionsByOrganizationId(action = READ, organizationIdIndex = 1)
+    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE r.id= :id AND r.status <> 'DEFAULT_DELETED' AND r.organization.id = :orgId")
+    RDSConfig findById(@Param("id") Long id, @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE r.owner= :owner and r.name= :name AND r.status = 'USER_MANAGED'")
-    RDSConfig findByNameInUser(@Param("name") String name, @Param("owner") String owner);
-
-    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE r.name= :name and r.account= :account AND r.status = 'USER_MANAGED'")
-    RDSConfig findOneByName(@Param("name") String name, @Param("account") String account);
-
-    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE  r.id= :id and r.account= :account AND r.status <> 'DEFAULT_DELETED'")
-    RDSConfig findByIdInAccount(@Param("id") Long id, @Param("account") String account);
-
-    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE  r.name= :name "
-            + "and ((r.publicInAccount=true and r.account= :account) or r.owner= :owner) AND r.status = 'USER_MANAGED'")
-    RDSConfig findByNameBasedOnAccount(@Param("name") String name, @Param("account") String account, @Param("owner") String owner);
-
-    @Override
-    @Query("SELECT r FROM RDSConfig r LEFT JOIN FETCH r.clusters WHERE r.id= :id AND r.status <> 'DEFAULT_DELETED'")
-    Optional<RDSConfig> findById(@Param("id") Long id);
-
+    @CheckPermissionsByOrganizationId(action = READ, organizationIdIndex = 1)
     @Query("SELECT r FROM RDSConfig r INNER JOIN r.clusters cluster LEFT JOIN FETCH r.clusters WHERE cluster.id= :clusterId "
-            + "AND ((r.account= :account AND r.publicInAccount= true) OR r.owner= :user)")
-    Set<RDSConfig> findByClusterId(@Param("user") String user, @Param("account") String account, @Param("clusterId") Long clusterId);
+            + "AND r.organization.id = :orgId")
+    Set<RDSConfig> findByClusterId(@Param("clusterId") Long clusterId, @Param("orgId") Long orgId);
 
+    @CheckPermissionsByOrganizationId(action = READ, organizationIdIndex = 1)
     @Query("SELECT r FROM RDSConfig r INNER JOIN r.clusters cluster LEFT JOIN FETCH r.clusters WHERE cluster.id= :clusterId "
-            + "AND ((r.account= :account AND r.publicInAccount= true) OR r.owner= :user) AND r.status = 'USER_MANAGED'")
-    Set<RDSConfig> findUserManagedByClusterId(@Param("user") String user, @Param("account") String account, @Param("clusterId") Long clusterId);
+            + "AND r.organization.id = :orgId AND r.status = 'USER_MANAGED'")
+    Set<RDSConfig> findUserManagedByClusterId(@Param("clusterId") Long clusterId, @Param("orgId") Long orgId);
 
+    @CheckPermissionsByOrganizationId(action = READ, organizationIdIndex = 2)
     @Query("SELECT r FROM RDSConfig r INNER JOIN r.clusters cluster WHERE cluster.id= :clusterId "
-            + "AND ((r.publicInAccount=true and r.account= :account) or r.owner= :user) AND r.status <> 'DEFAULT_DELETED' AND r.type= :type")
-    RDSConfig findByClusterIdAndType(@Param("user") String user, @Param("account") String account, @Param("clusterId") Long clusterId,
-            @Param("type") String type);
+            + "AND r.organization.id = :orgId AND r.status <> 'DEFAULT_DELETED' AND r.type= :type")
+    RDSConfig findByClusterIdAndType(@Param("clusterId") Long clusterId, @Param("type") String type, @Param("orgId") Long orgId);
+
+    @CheckPermissionsByOrganizationId(action = READ)
+    @Query("SELECT r FROM RDSConfig r WHERE r.organization.id = :orgId")
+    Set<RDSConfig> listByOrganizationId(@Param("orgId") Long orgId);
 }
