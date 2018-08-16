@@ -44,7 +44,7 @@ public abstract class AbstractOrganizationAwareResourceService<T extends Organiz
         return create(resource, organization);
     }
 
-    private T create(T resource, Organization organization) {
+    protected T create(T resource, @Nonnull Organization organization) {
         try {
             prepareCreation(resource);
             User user = userService.getCurrentUser();
@@ -104,7 +104,9 @@ public abstract class AbstractOrganizationAwareResourceService<T extends Organiz
 
     @Override
     public T delete(T resource) {
-        if (canDelete(resource)) {
+        if (resource == null) {
+            throw new NotFoundException(String.format("Resource('%s') could not be null.", resource().getReadableName()));
+        } else if (canDelete(resource)) {
             repository().delete(resource);
         }
         return resource;
@@ -122,7 +124,7 @@ public abstract class AbstractOrganizationAwareResourceService<T extends Organiz
         return delete(toBeDeleted);
     }
 
-    private void setOrganization(T resource, User user, Organization organization) {
+    protected void setOrganization(T resource, User user, Organization organization) {
         Set<Organization> usersOrganizations = organizationService.retrieveForUser(user);
         if (!usersOrganizations.contains(organization)) {
             throw new NotFoundException("Organization not found for user.");
