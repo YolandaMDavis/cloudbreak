@@ -8,14 +8,13 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
 
 import com.sequenceiq.cloudbreak.authorization.OrganizationResource;
 import com.sequenceiq.cloudbreak.domain.organization.Organization;
 import com.sequenceiq.cloudbreak.domain.organization.OrganizationAwareResource;
 
 @Entity
-@Table(name = "ManagementPack", uniqueConstraints = @UniqueConstraint(columnNames = {"organization_id", "name"}))
+@Table(name = "ManagementPack")
 public class ManagementPack implements ProvisionEntity, OrganizationAwareResource {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator = "managementpack_generator")
